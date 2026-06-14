@@ -1,0 +1,6 @@
+/* Styles are handled inside components via styles object and <style> tags */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}

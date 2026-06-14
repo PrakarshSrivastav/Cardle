@@ -1,0 +1,9 @@
+PROJECT_GUIDE.txt
+.env
+venv/
+__pycache__/
+*.pyc
+cardapi-frontend/.env.local
+cardapi-frontend/.env.production
+cardapi-frontend/node_modules/
+cardapi-frontend/dist/
