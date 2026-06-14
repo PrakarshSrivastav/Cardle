@@ -1,9 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-
 from app.core.config import settings
 
-engine = create_engine(settings.DATABASE_URL)
+url = settings.DATABASE_URL.replace("postgresql://", "postgresql+pg8000://")
+
+engine = create_engine(url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
