@@ -43,11 +43,13 @@ export default function Login({ onLogin }: Props) {
           margin: 0; 
           background: #0a0a0a; 
           font-family: 'Inter', sans-serif;
-          color: white;
+          color: #e8e8e8;
         }
         * { box-sizing: border-box; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button:active { transform: translateY(0); }
+        input:focus { border-color: #444444 !important; outline: none; }
+        button { transition: all 0.2s ease; cursor: pointer; }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
       `}</style>
       
       <div style={styles.card}>
@@ -101,7 +103,7 @@ export default function Login({ onLogin }: Props) {
             onClick={handleSubmit}
             disabled={loading}
           >
-            {loading ? "..." : mode === "login" ? "Login" : "Create Account"}
+            {loading ? "..." : mode === "login" ? "LOGIN" : "CREATE ACCOUNT"}
           </button>
         </div>
       </div>
@@ -118,60 +120,54 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#0a0a0a",
   },
   card: {
-    background: "#111",
-    border: "1px solid #1e1e1e",
-    borderRadius: 16,
+    background: "#0f0f0f",
+    border: "1px solid #1a1a1a",
+    borderRadius: 4,
     padding: "40px 32px",
     width: "100%",
-    maxWidth: 400,
+    maxWidth: 360,
     display: "flex",
     flexDirection: "column",
     gap: 12,
-    boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
   },
   logo: {
-    fontSize: 56,
+    fontSize: 28,
     textAlign: "center",
     marginBottom: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 800,
+    fontSize: 18,
+    fontWeight: 600,
     textAlign: "center",
     margin: 0,
-    color: "#fff",
-    letterSpacing: "-0.5px",
+    color: "#e8e8e8",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
   },
   subtitle: {
-    color: "#888",
+    color: "#444444",
     textAlign: "center",
     margin: "0 0 24px 0",
-    fontSize: 14,
-    fontWeight: 500,
+    fontSize: 12,
+    letterSpacing: "0.05em",
   },
   tabs: {
     display: "flex",
-    background: "#000",
-    padding: 4,
-    borderRadius: 10,
+    borderBottom: "1px solid #222",
     marginBottom: 16,
-    gap: 4,
   },
   tab: {
     flex: 1,
     padding: "10px 0",
-    borderRadius: 8,
     border: "none",
     background: "transparent",
-    color: "#666",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 700,
-    transition: "all 0.2s",
+    color: "#444444",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.05em",
   },
   tabActive: {
-    background: "#1a1a1a",
-    color: "#fff",
+    color: "#e8e8e8",
   },
   form: {
     display: "flex",
@@ -179,32 +175,30 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
   },
   input: {
-    padding: "14px 16px",
-    borderRadius: 8,
-    border: "1px solid #333",
-    background: "#1a1a1a",
-    color: "#fff",
-    fontSize: 15,
-    outline: "none",
+    padding: "10px 14px",
+    borderRadius: 3,
+    border: "1px solid #222222",
+    background: "#0a0a0a",
+    color: "#e8e8e8",
+    fontSize: 14,
     transition: "border-color 0.2s",
   },
   submitBtn: {
-    padding: "16px",
-    borderRadius: 8,
-    background: "#fff",
-    color: "#000",
-    fontWeight: 800,
-    fontSize: 16,
+    height: 40,
+    borderRadius: 3,
+    background: "#e8e8e8",
+    color: "#0a0a0a",
+    fontWeight: 600,
+    fontSize: 13,
+    letterSpacing: "0.08em",
     border: "none",
-    cursor: "pointer",
     marginTop: 8,
-    transition: "all 0.2s",
   },
   error: {
-    color: "#e74c3c",
-    fontSize: 13,
+    color: "#e57373",
+    fontSize: 12,
     margin: 0,
     textAlign: "center",
-    fontWeight: 600,
   },
 };
+

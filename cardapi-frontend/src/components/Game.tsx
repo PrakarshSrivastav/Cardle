@@ -29,25 +29,24 @@ function PlayingCard({ card }: { card: Card }) {
 
   return (
     <div style={styles.playingCard}>
-      <div style={{ ...styles.cardCorner, top: 6, left: 6, color }}>
-        <div style={{ fontWeight: 800 }}>{label}</div>
-        <div style={{ fontSize: 12, marginTop: -2 }}>{suit}</div>
+      <div style={{ ...styles.cardCorner, top: 4, left: 6, color }}>
+        <div style={{ fontWeight: 600, fontSize: 13 }}>{label}</div>
+        <div style={{ fontSize: 11, marginTop: -2 }}>{suit}</div>
       </div>
       
       <div style={{ ...styles.cardCenter, color }}>{suit}</div>
       
       <div style={{ 
         position: "absolute",
-        bottom: "6px",
-        right: "8px",
-        transform: "rotate(180deg)",
+        bottom: "4px",
+        right: "6px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         color 
       }}>
-        <div style={{ fontWeight: 800 }}>{label}</div>
-        <div style={{ fontSize: 12, marginTop: -2 }}>{suit}</div>
+        <div style={{ fontWeight: 600, fontSize: 13 }}>{label}</div>
+        <div style={{ fontSize: 11, marginTop: -2 }}>{suit}</div>
       </div>
     </div>
   );
@@ -62,14 +61,31 @@ export default function Game({ onLogout }: Props) {
   const [streak, setStreak] = useState(0);
 
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [revealedCards, setRevealedCards] = useState<number>(0);
 
   useEffect(() => {
     document.title = "Cardle";
     loadChallenge();
+
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    setRevealedCards(0);
+    result.dealer_cards.forEach((_, index) => {
+      setTimeout(() => {
+        setRevealedCards(index + 1);
+      }, (index + 1) * 800);
+    });
+  }, [result]);
 
   async function loadChallenge() {
     setLoading(true);
@@ -120,6 +136,24 @@ export default function Game({ onLogout }: Props) {
     await submitGuess("NO");
   }
 
+  function calcScore(cards: Card[]): number {
+    const VALUES: Record<string, number> = {
+      ACE: 11, KING: 10, QUEEN: 10, JACK: 10
+    };
+    let total = 0;
+    let aces = 0;
+    for (const card of cards) {
+      const v = VALUES[card.value] ?? parseInt(card.value);
+      if (card.value === "ACE") aces++;
+      total += v;
+    }
+    while (total > 21 && aces > 0) {
+      total -= 10;
+      aces--;
+    }
+    return total;
+  }
+
   if (loading) return (
     <div style={styles.loadingPage}>
       <style>{`
@@ -139,40 +173,77 @@ export default function Game({ onLogout }: Props) {
     if (rank === 1) return "#FFD700";
     if (rank === 2) return "#C0C0C0";
     if (rank === 3) return "#CD7F32";
-    return "#fff";
+    return "#e8e8e8";
   };
 
+  const RulesList = () => (
+    <div style={styles.rulesList}>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>THE HAND</div>
+        <div style={styles.ruleDesc}>You are dealt 3 cards every day. Everyone gets the same hand.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>YOUR GOAL</div>
+        <div style={styles.ruleDesc}>Guess whether the dealer will beat your score. Answer YES or NO.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>SCORING</div>
+        <div style={styles.ruleDesc}>Number cards are face value. Face cards are 10. Aces are 11, dropping to 1 if you would bust.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>THE DEALER</div>
+        <div style={styles.ruleDesc}>The dealer draws until they reach 17 or higher. If they beat your score, the answer is YES.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>BUSTING</div>
+        <div style={styles.ruleDesc}>If your score exceeds 21 you bust. Guess whether the dealer also busts.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>STREAKS</div>
+        <div style={styles.ruleDesc}>Answer correctly every day to build your streak. Miss a day or guess wrong and it resets to zero.</div>
+      </div>
+      <div style={styles.ruleItem}>
+        <div style={styles.ruleLabel}>ONE CHANCE</div>
+        <div style={styles.ruleDesc}>One hand per day. New cards at midnight UTC.</div>
+      </div>
+    </div>
+  );
+
   return (
-    <div style={styles.pageWrapper}>
+    <div style={{
+      ...styles.pageWrapper,
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "300px 1fr",
+      gap: isMobile ? "24px" : "48px",
+      padding: isMobile ? "24px" : "40px 24px",
+    }}>
       <style>{`
         body { 
           margin: 0; 
           background: #0a0a0a; 
           font-family: 'Inter', sans-serif;
-          color: white;
-        }
-        @keyframes pulseGlow {
-          0% { box-shadow: 0 0 5px rgba(243, 156, 18, 0.5); border-color: rgba(243, 156, 18, 0.4); }
-          50% { box-shadow: 0 0 15px rgba(243, 156, 18, 0.8); border-color: rgba(243, 156, 18, 0.9); }
-          100% { box-shadow: 0 0 5px rgba(243, 156, 18, 0.5); border-color: rgba(243, 156, 18, 0.4); }
+          color: #e8e8e8;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes cardReveal {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         button { transition: all 0.2s ease; cursor: pointer; }
-        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        button:active { transform: translateY(0); }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
       `}</style>
 
       {showLeaderboard && (
         <div style={styles.overlay}>
           <div style={styles.overlayCard}>
             <button style={styles.closeBtn} onClick={() => setShowLeaderboard(false)}>✕</button>
-            <h2 style={styles.overlayTitle}>🏆 Leaderboard</h2>
+            <h2 style={styles.overlayTitle}>Leaderboard</h2>
             
             {loadingLeaderboard ? (
               <div style={styles.overlayMessage}>Loading...</div>
             ) : leaderboard.length === 0 ? (
-              <div style={styles.overlayMessage}>No streaks yet. Be the first!</div>
+              <div style={styles.overlayMessage}>No streaks yet.</div>
             ) : (
               <div style={styles.leaderboardList}>
                 {leaderboard.map((entry) => (
@@ -182,8 +253,8 @@ export default function Game({ onLogout }: Props) {
                     </div>
                     <div style={styles.userName}>{entry.username}</div>
                     <div style={styles.userStreaks}>
-                      <span style={{ color: "#f39c12", fontWeight: 700 }}>🔥 {entry.current_streak}</span>
-                      <span style={{ color: "#666", fontSize: 12, marginLeft: 8 }}>best: {entry.longest_streak}</span>
+                      <span style={{ color: "#888888", fontSize: 13 }}>🔥 {entry.current_streak}</span>
+                      <span style={{ color: "#444444", fontSize: 10, marginLeft: 8 }}>BEST: {entry.longest_streak}</span>
                     </div>
                   </div>
                 ))}
@@ -193,46 +264,48 @@ export default function Game({ onLogout }: Props) {
         </div>
       )}
 
-      {showHowToPlay && (
-        <div style={styles.overlay}>
-          <div style={styles.overlayCard}>
-            <h2 style={styles.overlayTitle}>How to Play</h2>
-            <div style={styles.howToPlayContent}>
-              <div style={styles.howToItem}>🃏 You're dealt 3 cards. Your score is calculated blackjack style.</div>
-              <div style={styles.howToItem}>🎯 Guess: Will the dealer beat your score? Answer YES or NO.</div>
-              <div style={styles.howToItem}>♠ Aces = 11 (drops to 1 if bust). Face cards = 10.</div>
-              <div style={styles.howToItem}>💥 If you bust (score &gt; 21), dealer wins automatically.</div>
-              <div style={styles.howToItem}>🔥 Answer correctly every day to build your streak.</div>
-              <div style={styles.howToItem}>⏰ One challenge per day. New hand at midnight UTC.</div>
+      <aside style={isMobile ? styles.mobileLeftColumn : styles.leftColumn}>
+        {!isMobile ? (
+          <>
+            <div style={styles.rulesTitle}>HOW TO PLAY</div>
+            <RulesList />
+            <div style={{ height: 1, background: "#1a1a1a", margin: "24px 0" }} />
+            <div style={styles.streakSection}>
+              <div style={styles.streakLabel}>YOUR STREAK</div>
+              <div style={styles.streakValue}>
+                {streak > 0 && "🔥 "}{streak} days
+              </div>
             </div>
-            <button style={styles.fullWidthBtn} onClick={() => setShowHowToPlay(false)}>CLOSE</button>
-          </div>
-        </div>
-      )}
+          </>
+        ) : (
+          <>
+            <div style={styles.streakSection}>
+              <div style={styles.streakLabel}>YOUR STREAK</div>
+              <div style={styles.streakValue}>
+                {streak > 0 && "🔥 "}{streak} days
+              </div>
+            </div>
+            <div style={{ marginTop: 24 }}>
+              <button 
+                style={styles.mobileRulesToggle} 
+                onClick={() => setShowRules(!showRules)}
+              >
+                HOW TO PLAY {showRules ? "↑" : "↓"}
+              </button>
+              {showRules && <div style={{ marginTop: 20 }}><RulesList /></div>}
+            </div>
+          </>
+        )}
+      </aside>
 
-      <header style={styles.topBar}>
-        <div style={{ ...styles.topBarSection, ...styles.topBarLeft }}>
-          <div style={{ 
-            ...styles.streakBadge, 
-            ...(streak > 0 ? { animation: "pulseGlow 2s infinite" } : {}) 
-          }}>
-            {streak > 0 ? `🔥 ${streak}` : "0"}
-          </div>
-        </div>
-        
-        <div style={{ ...styles.topBarSection, ...styles.topBarCenter }}>
-          <button style={styles.navBtn} onClick={fetchLeaderboard}>🏆 LEADERBOARD</button>
-          <button style={styles.helpCircleSmall} onClick={() => setShowHowToPlay(true)}>?</button>
-        </div>
-        
-        <div style={{ ...styles.topBarSection, ...styles.topBarRight }}>
+      <main style={styles.rightColumn}>
+        <header style={styles.innerTopBar}>
+          <button style={styles.navBtn} onClick={fetchLeaderboard}>LEADERBOARD</button>
           <button style={styles.logoutBtn} onClick={onLogout}>LOGOUT</button>
-        </div>
-      </header>
+        </header>
 
-      <div style={styles.gameContainer}>
         <div style={styles.heroSection}>
-          <h1 style={styles.mainTitle}>🃏 Cardle</h1>
+          <h1 style={styles.mainTitle}>Cardle</h1>
           <p style={styles.dateText}>{challenge.date}</p>
         </div>
 
@@ -243,8 +316,8 @@ export default function Game({ onLogout }: Props) {
               {challenge.cards.map((c) => <PlayingCard key={c.code} card={c} />)}
             </div>
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <div style={{ ...styles.scorePill, background: bust ? "#e74c3c" : "#2ecc71" }}>
-                {bust ? "BUST 💥" : `SCORE: ${challenge.score}`}
+              <div style={styles.scoreText}>
+                {bust ? <span style={styles.bustText}>bust</span> : `Score ${challenge.score}`}
               </div>
             </div>
           </div>
@@ -274,38 +347,61 @@ export default function Game({ onLogout }: Props) {
 
           {result && (
             <div style={styles.resultSection}>
-              <div style={{ 
-                ...styles.resultStatus, 
-                color: result.correct ? "#2ecc71" : "#e74c3c" 
-              }}>
-                {result.correct ? "CORRECT!" : "WRONG!"}
-              </div>
-              <p style={styles.resultMessage}>{result.message}</p>
-              <div style={styles.streakUpdate}>
-                {result.streak > 0 ? `🔥 ${result.streak} day streak` : "Streak reset"}
-              </div>
+              {revealedCards >= result.dealer_cards.length && (
+                <>
+                  <div style={{ 
+                    ...styles.resultStatus, 
+                    color: result.correct ? "#4caf50" : "#e57373" 
+                  }}>
+                    {result.correct ? "CORRECT" : "WRONG"}
+                  </div>
+                  <p style={styles.resultMessage}>{result.message}</p>
+                  <div style={styles.streakUpdate}>
+                    {result.streak > 0 ? `🔥 ${result.streak} DAY STREAK` : "STREAK RESET"}
+                  </div>
 
-              <div style={{ height: 2, background: "#1e1e1e", margin: "24px 0" }} />
+                  <div style={{ height: 1, background: "#1a1a1a", margin: "24px 0" }} />
+                </>
+              )}
 
               <span style={styles.sectionLabel}>DEALER'S HAND</span>
               <div style={styles.cardRow}>
-                {result.dealer_cards.map((c) => <PlayingCard key={c.code} card={c} />)}
+                {result.dealer_cards.slice(0, revealedCards).map((c) => (
+                  <div key={c.code} style={{ animation: "cardReveal 0.3s ease forwards" }}>
+                    <PlayingCard card={c} />
+                  </div>
+                ))}
               </div>
 
-              <div style={styles.summaryRow}>
-                <div style={styles.summaryPill}>YOU: {result.player_score > 21 ? "BUST" : result.player_score}</div>
-                <div style={styles.summaryPill}>DEALER: {result.dealer_score > 21 ? "BUST" : result.dealer_score}</div>
+              <div style={{ 
+                fontSize: 14, 
+                color: calcScore(result.dealer_cards.slice(0, revealedCards)) > 21 ? "#e57373" : "#666",
+                marginBottom: 8
+              }}>
+                Dealer: {calcScore(result.dealer_cards.slice(0, revealedCards))}
               </div>
+
+              {revealedCards < result.dealer_cards.length ? (
+                <div style={{ color: "#444", fontSize: 12 }}>drawing...</div>
+              ) : (
+                <div style={styles.summaryRow}>
+                  <div style={styles.summaryText}>
+                    You {result.player_score > 21 ? "bust" : result.player_score}
+                    {"  •  "}
+                    Dealer {result.dealer_score > 21 ? "bust" : result.dealer_score}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {alreadyPlayed && !result && (
             <div style={styles.alreadyPlayedBox}>
-              ✅ Already played today. Come back tomorrow!
+              Already played today. Come back tomorrow.
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -314,10 +410,78 @@ const styles: Record<string, React.CSSProperties> = {
   pageWrapper: {
     minHeight: "100vh",
     background: "#0a0a0a",
+    maxWidth: 1100,
+    margin: "0 auto",
+  },
+  leftColumn: {
+    position: "sticky",
+    top: 40,
+    alignSelf: "flex-start",
+  },
+  mobileLeftColumn: {
+    width: "100%",
+    marginBottom: 24,
+  },
+  rightColumn: {
+    width: "100%",
+  },
+  rulesTitle: {
+    fontSize: 10,
+    letterSpacing: "0.15em",
+    color: "#333333",
+    marginBottom: 24,
+    fontWeight: 500,
+  },
+  rulesList: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
-    padding: "0 0 40px",
+  },
+  ruleItem: {
+    marginBottom: 20,
+  },
+  ruleLabel: {
+    color: "#555555",
+    fontSize: 11,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    marginBottom: 4,
+    fontWeight: 500,
+  },
+  ruleDesc: {
+    color: "#888888",
+    fontSize: 13,
+    lineHeight: 1.6,
+  },
+  streakSection: {
+    marginTop: 0,
+  },
+  streakLabel: {
+    color: "#555555",
+    fontSize: 11,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    marginBottom: 4,
+    fontWeight: 500,
+  },
+  streakValue: {
+    color: "#e8e8e8",
+    fontSize: 20,
+    fontWeight: 600,
+  },
+  mobileRulesToggle: {
+    background: "transparent",
+    border: "none",
+    color: "#333333",
+    fontSize: 10,
+    letterSpacing: "0.15em",
+    fontWeight: 500,
+    padding: 0,
+  },
+  innerTopBar: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 16,
+    padding: "0 0 20px 0",
   },
   loadingPage: {
     position: "fixed",
@@ -329,142 +493,90 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1000,
   },
   loadingCard: {
-    background: "#111",
-    borderRadius: 16,
+    background: "#0f0f0f",
+    border: "1px solid #1a1a1a",
+    borderRadius: 4,
     padding: 40,
     textAlign: "center",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
   },
   spinner: {
-    width: 40,
-    height: 40,
-    border: "3px solid #333",
-    borderTopColor: "#2ecc71",
+    width: 24,
+    height: 24,
+    border: "2px solid #222",
+    borderTopColor: "#e8e8e8",
     borderRadius: "50%",
     margin: "0 auto",
     animation: "spin 0.8s linear infinite",
   },
   loadingText: {
     color: "#666",
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 16,
     fontWeight: 500,
+    letterSpacing: "0.05em",
   },
   loader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     height: "100vh",
-    color: "#666",
-    fontSize: 18,
-    fontWeight: 700,
-  },
-  gameContainer: {
-    width: "100%",
-    maxWidth: 480,
-    display: "flex",
-    flexDirection: "column",
-    padding: "0 16px",
-  },
-  topBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 480,
-    margin: "0 auto",
-    padding: "16px",
-    position: "sticky",
-    top: 0,
-    background: "rgba(10,10,10,0.95)",
-    backdropFilter: "blur(8px)",
-    zIndex: 10,
-  },
-  topBarSection: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-  },
-  topBarLeft: { justifyContent: "flex-start" },
-  topBarCenter: { justifyContent: "center", gap: 8 },
-  topBarRight: { justifyContent: "flex-end" },
-  streakBadge: {
-    padding: "6px 12px",
-    borderRadius: 99,
-    fontSize: 12,
-    fontWeight: 800,
-    background: "#111",
-    border: "1px solid #1e1e1e",
-    color: "#f39c12",
+    color: "#444",
+    fontSize: 14,
   },
   navBtn: {
     background: "transparent",
     border: "none",
-    color: "#888",
+    color: "#555555",
     fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.05em",
-  },
-  helpCircleSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: "50%",
-    border: "1px solid #333",
-    background: "transparent",
-    color: "#666",
-    fontSize: 14,
-    fontWeight: 700,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 0,
+    fontWeight: 500,
+    letterSpacing: "0.1em",
   },
   logoutBtn: {
     background: "transparent",
     border: "none",
-    color: "#666",
+    color: "#555555",
     fontSize: 11,
-    fontWeight: 700,
+    fontWeight: 500,
     letterSpacing: "0.1em",
   },
   heroSection: {
     textAlign: "center",
-    margin: "40px 0",
+    margin: "0 0 40px 0",
   },
   mainTitle: {
-    fontSize: 32,
-    fontWeight: 900,
+    fontSize: 22,
+    fontWeight: 600,
     margin: 0,
-    letterSpacing: "-1px",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#e8e8e8",
   },
   dateText: {
-    color: "#666",
-    fontSize: 13,
-    marginTop: 6,
-    fontWeight: 500,
+    color: "#333333",
+    fontSize: 12,
+    marginTop: 8,
   },
   tableArea: {
     position: "relative",
-    background: "radial-gradient(ellipse at center, #1a3a2a 0%, #0a0a0a 70%)",
-    padding: "20px 0",
-    borderRadius: 24,
+    padding: "0",
+    maxWidth: 480,
+    margin: "0 auto",
   },
   handSection: {
-    background: "#111",
-    border: "1px solid #1e1e1e",
-    borderRadius: 16,
+    background: "#0f0f0f",
+    border: "1px solid #1a1a1a",
+    borderRadius: 4,
     padding: "24px",
     marginBottom: 32,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
   },
   sectionLabel: {
     display: "block",
-    fontSize: 11,
-    fontWeight: 800,
-    color: "#666",
+    fontSize: 10,
+    fontWeight: 500,
+    color: "#444444",
     letterSpacing: "0.15em",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   cardRow: {
     display: "flex",
@@ -474,12 +586,13 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 20,
   },
   playingCard: {
-    width: 72,
-    height: 104,
+    width: 68,
+    height: 96,
     background: "#fff",
-    borderRadius: 10,
+    borderRadius: 8,
     position: "relative",
-    boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+    border: "1px solid #d0d0d0",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
     color: "#000",
   },
   cardCorner: {
@@ -488,47 +601,49 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     alignItems: "center",
     lineHeight: 1,
-    fontSize: 14,
   },
   cardCenter: {
     position: "absolute",
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    fontSize: 36,
+    fontSize: 28,
   },
-  scorePill: {
-    padding: "6px 16px",
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 900,
-    color: "#000",
-    display: "inline-block",
+  scoreText: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: "#666666",
+  },
+  bustText: {
+    fontSize: 12,
+    color: "#e57373",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
   },
   actionSection: {
     textAlign: "center",
   },
   bustMessage: {
-    color: "#666",
-    fontSize: 15,
-    marginBottom: 16,
-    fontWeight: 500,
+    color: "#444",
+    fontSize: 14,
+    marginBottom: 20,
   },
   revealBtn: {
     width: "100%",
-    padding: "18px",
-    borderRadius: 12,
-    background: "#333",
-    color: "#fff",
-    fontWeight: 800,
-    fontSize: 16,
-    border: "none",
+    height: 44,
+    borderRadius: 4,
+    background: "#1a1a1a",
+    color: "#e8e8e8",
+    fontWeight: 600,
+    fontSize: 13,
+    letterSpacing: "0.08em",
+    border: "1px solid #222",
   },
   questionText: {
-    fontSize: 22,
-    fontWeight: 800,
+    fontSize: 16,
+    fontWeight: 400,
     marginBottom: 24,
-    color: "#fff",
+    color: "#aaaaaa",
   },
   buttonStack: {
     display: "flex",
@@ -537,72 +652,69 @@ const styles: Record<string, React.CSSProperties> = {
   },
   yesBtn: {
     width: "100%",
-    padding: "18px",
-    borderRadius: 12,
-    background: "#2ecc71",
-    color: "#000",
-    fontWeight: 900,
-    fontSize: 18,
-    border: "none",
+    height: 44,
+    borderRadius: 4,
+    background: "#1a3a1a",
+    color: "#4caf50",
+    border: "1px solid #2d5a2d",
+    fontWeight: 600,
+    fontSize: 13,
+    letterSpacing: "0.08em",
   },
   noBtn: {
     width: "100%",
-    padding: "18px",
-    borderRadius: 12,
-    background: "#e74c3c",
-    color: "#fff",
-    fontWeight: 900,
-    fontSize: 18,
-    border: "none",
+    height: 44,
+    borderRadius: 4,
+    background: "#3a1a1a",
+    color: "#e57373",
+    border: "1px solid #5a2d2d",
+    fontWeight: 600,
+    fontSize: 13,
+    letterSpacing: "0.08em",
   },
   resultSection: {
-    background: "#111",
-    border: "1px solid #1e1e1e",
-    borderRadius: 16,
-    padding: "32px 24px",
+    background: "#0f0f0f",
+    border: "1px solid #1a1a1a",
+    borderRadius: 4,
+    padding: "24px",
     textAlign: "center",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
   },
   resultStatus: {
-    fontSize: 32,
-    fontWeight: 900,
+    fontSize: 16,
+    fontWeight: 600,
+    letterSpacing: "0.05em",
     marginBottom: 8,
   },
   resultMessage: {
-    color: "#888",
-    fontSize: 15,
-    margin: "0 0 8px 0",
+    color: "#666",
+    fontSize: 14,
+    margin: "0 0 12px 0",
   },
   streakUpdate: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#fff",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#444",
+    letterSpacing: "0.05em",
   },
   summaryRow: {
     display: "flex",
     justifyContent: "center",
-    gap: 12,
     marginTop: 8,
   },
-  summaryPill: {
-    background: "#1e1e1e",
-    padding: "8px 16px",
-    borderRadius: 8,
+  summaryText: {
     fontSize: 13,
-    fontWeight: 700,
-    color: "#888",
+    color: "#666666",
   },
   alreadyPlayedBox: {
     textAlign: "center",
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: 700,
+    color: "#444",
+    fontSize: 14,
     padding: "40px 0",
   },
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.92)",
+    background: "rgba(0,0,0,0.88)",
     zIndex: 100,
     display: "flex",
     alignItems: "center",
@@ -611,9 +723,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   overlayCard: {
     width: "100%",
-    maxWidth: 440,
-    background: "#111",
-    borderRadius: 16,
+    maxWidth: 400,
+    background: "#0f0f0f",
+    border: "1px solid #1a1a1a",
+    borderRadius: 4,
     padding: 32,
     position: "relative",
     maxHeight: "90vh",
@@ -625,65 +738,47 @@ const styles: Record<string, React.CSSProperties> = {
     right: 16,
     background: "transparent",
     border: "none",
-    color: "#666",
-    fontSize: 20,
+    color: "#444",
+    fontSize: 16,
   },
   overlayTitle: {
-    fontSize: 24,
-    fontWeight: 800,
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
     margin: "0 0 24px 0",
     textAlign: "center",
+    color: "#e8e8e8",
   },
   overlayMessage: {
     textAlign: "center",
-    color: "#666",
+    color: "#444",
+    fontSize: 13,
     padding: "20px 0",
   },
   leaderboardList: {
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 8,
   },
   leaderboardItem: {
     display: "flex",
     alignItems: "center",
-    background: "#0a0a0a",
-    padding: "12px 16px",
-    borderRadius: 8,
-    border: "1px solid #1e1e1e",
+    padding: "10px 0",
+    borderBottom: "1px solid #1a1a1a",
   },
   rank: {
-    fontSize: 18,
-    fontWeight: 800,
-    width: 32,
+    fontSize: 13,
+    fontWeight: 600,
+    width: 24,
   },
   userName: {
     flex: 1,
-    fontWeight: 600,
-    fontSize: 15,
+    fontSize: 13,
+    color: "#e8e8e8",
   },
   userStreaks: {
     textAlign: "right",
   },
-  howToPlayContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    marginBottom: 32,
-  },
-  howToItem: {
-    fontSize: 14,
-    color: "#aaa",
-    lineHeight: 1.5,
-  },
-  fullWidthBtn: {
-    width: "100%",
-    padding: "16px",
-    borderRadius: 12,
-    background: "#333",
-    color: "#fff",
-    fontWeight: 800,
-    fontSize: 14,
-    border: "none",
-  },
 };
+
