@@ -14,7 +14,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://cardle.vercel.app",
+        "https://cardle-six.vercel.app",
         "https://cardle-production.up.railway.app"
     ],
     allow_credentials=True,
